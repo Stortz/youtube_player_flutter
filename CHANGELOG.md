@@ -1,3 +1,12 @@
+## 6.1.1
+* Removed `forceHideAnnotation`.
+
+## 6.1.0+7
+* Updated *webview_media* constraint to `>=0.1.2<1.0.0`
+
+## 6.1.0+6
+* Exports `Webview`
+
 ## 6.1.0+5
 * **(Fixed)** Infinite buffer indicator when `autoplay` set to false
 

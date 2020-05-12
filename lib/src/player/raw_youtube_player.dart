@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -87,6 +86,10 @@ class _RawYoutubePlayerState extends State<RawYoutubePlayer>
           encoding: 'utf-8',
           mimeType: 'text/html',
         ),
+        onWebResourceError: (WebResourceError error) {
+          controller
+              .updateValue(controller.value.copyWith(webResourceError: error));
+        },
         javascriptMode: JavascriptMode.unrestricted,
         initialMediaPlaybackPolicy: AutoMediaPlaybackPolicy.always_allow,
         javascriptChannels: {
@@ -239,8 +242,7 @@ class _RawYoutubePlayerState extends State<RawYoutubePlayer>
     );
   }
 
-  String get player {
-    var _player = '''
+  String get player => '''
     <!DOCTYPE html>
     <html>
     <head>
@@ -252,21 +254,8 @@ class _RawYoutubePlayerState extends State<RawYoutubePlayer>
                 background-color: #000000;
                 overflow: hidden;
                 position: fixed;
-    ''';
-    if (!Platform.isIOS && controller.flags.forceHideAnnotation) {
-      _player += '''
-                height: 1000%;
-                width: 1000%;
-                transform: scale(0.1);
-                transform-origin: left top;
-      ''';
-    } else {
-      _player += '''
                 height: 100%;
                 width: 100%;
-      ''';
-    }
-    _player += '''
             }
         </style>
         <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'>
@@ -402,9 +391,7 @@ class _RawYoutubePlayerState extends State<RawYoutubePlayer>
         </script>
     </body>
     </html>
-    ''';
-    return _player;
-  }
+  ''';
 
   String boolean({@required bool value}) => value ? "'1'" : "'0'";
 

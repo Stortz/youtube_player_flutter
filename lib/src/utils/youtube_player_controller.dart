@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 import 'package:flutter/widgets.dart';
+import 'package:webview_media/platform_interface.dart';
 import 'package:webview_media/webview_flutter.dart';
 
 import '../enums/playback_rate.dart';
@@ -32,6 +33,7 @@ class YoutubePlayerValue {
     this.toggleFullScreen = false,
     this.isDragging = false,
     this.metaData = const YoutubeMetaData(),
+    this.webResourceError,
   });
 
   /// Returns true when the player is ready to play videos.
@@ -69,11 +71,14 @@ class YoutubePlayerValue {
   /// See the onError Section.
   final int errorCode;
 
+  /// Reports error related toloading page resources.
+  final WebResourceError webResourceError;
+
   /// Reports the [WebViewController].
   final WebViewController webViewController;
 
   /// Returns true is player has errors.
-  bool get hasError => errorCode != 0;
+  bool get hasError => errorCode != 0 && webResourceError == null;
 
   /// Reports the current playback quality.
   final String playbackQuality;
@@ -107,6 +112,7 @@ class YoutubePlayerValue {
     bool toggleFullScreen,
     bool isDragging,
     YoutubeMetaData metaData,
+    WebResourceError webResourceError,
   }) {
     return YoutubePlayerValue(
       isReady: isReady ?? this.isReady,
@@ -125,6 +131,7 @@ class YoutubePlayerValue {
       toggleFullScreen: toggleFullScreen ?? this.toggleFullScreen,
       isDragging: isDragging ?? this.isDragging,
       metaData: metaData ?? this.metaData,
+      webResourceError: webResourceError ?? this.webResourceError,
     );
   }
 
@@ -141,6 +148,7 @@ class YoutubePlayerValue {
         'playerState: $playerState, '
         'playbackRate: $playbackRate, '
         'playbackQuality: $playbackQuality, '
+        'webResourceError: ${webResourceError?.description}, '
         'errorCode: $errorCode)';
   }
 }
@@ -248,15 +256,8 @@ class YoutubePlayerController extends ValueNotifier<YoutubePlayerValue> {
   }
 
   /// Sets the size in pixels of the player.
-  void setSize(Size size) {
-    var _width = size.width;
-    var _height = size.height;
-    if (flags.forceHideAnnotation) {
-      _width *= 100;
-      _height *= 100;
-    }
-    _callMethod('setSize($_width, $_height)');
-  }
+  void setSize(Size size) =>
+      _callMethod('setSize(${size.width}, ${size.height})');
 
   /// Fits the video to screen width.
   void fitWidth(Size screenSize) {
@@ -304,6 +305,7 @@ class YoutubePlayerController extends ValueNotifier<YoutubePlayerValue> {
           isPlaying: false,
           isDragging: false,
           metaData: const YoutubeMetaData(),
+          webResourceError: null,
         ),
       );
 }

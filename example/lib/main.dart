@@ -7,11 +7,13 @@ import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'video_list.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(
     SystemUiOverlayStyle(
       statusBarColor: Colors.blueAccent,
     ),
   );
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   runApp(YoutubePlayerDemoApp());
 }
 
@@ -62,7 +64,8 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _isPlayerReady = false;
 
   final List<String> _ids = [
-    'lgkZC_Ss6YE',
+    'nPt8bK2gbaU',
+    'qiYKD1FZ5YM',
     'gQDByCdjUXw',
     'iLnmTe5Q2Qw',
     '_WoCV4c6XOE',
@@ -84,7 +87,6 @@ class _MyHomePageState extends State<MyHomePage> {
         disableDragSeek: false,
         loop: false,
         isLive: false,
-        forceHideAnnotation: true,
         forceHD: false,
         enableCaption: true,
       ),
