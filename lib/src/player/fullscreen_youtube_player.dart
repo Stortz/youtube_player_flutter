@@ -1,4 +1,4 @@
-// Copyright 2019 Sarbagya Dhaubanjar. All rights reserved.
+// Copyright 2020 Sarbagya Dhaubanjar. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -7,6 +7,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 import '../player/youtube_player.dart';
+import '../utils/youtube_meta_data.dart';
 import '../utils/youtube_player_controller.dart';
 import '../widgets/widgets.dart';
 
@@ -21,6 +22,7 @@ Future<void> showFullScreenYoutubePlayer({
   Duration controlsTimeOut,
   Color liveUIColor,
   VoidCallback onReady,
+  void Function(YoutubeMetaData) onEnded,
   ProgressBarColors progressColors,
   String thumbnailUrl,
 }) async =>
@@ -36,6 +38,7 @@ Future<void> showFullScreenYoutubePlayer({
           controlsTimeOut: controlsTimeOut,
           liveUIColor: liveUIColor,
           onReady: onReady,
+          onEnded: onEnded,
           progressColors: progressColors,
           thumbnailUrl: thumbnailUrl,
         ),
@@ -57,6 +60,9 @@ class _FullScreenYoutubePlayer extends StatefulWidget {
 
   /// {@macro youtube_player_flutter.onReady}
   final VoidCallback onReady;
+
+  /// {@macro youtube_player_flutter.onEnded}
+  final void Function(YoutubeMetaData) onEnded;
 
   /// {@macro youtube_player_flutter.liveUIColor}
   final Color liveUIColor;
@@ -80,6 +86,7 @@ class _FullScreenYoutubePlayer extends StatefulWidget {
     this.bufferIndicator,
     this.progressColors,
     this.onReady,
+    this.onEnded,
     this.liveUIColor = Colors.red,
     this.topActions,
     this.bottomActions,
@@ -104,6 +111,7 @@ class _FullScreenYoutubePlayerState extends State<_FullScreenYoutubePlayer> {
       controlsTimeOut: widget.controlsTimeOut,
       liveUIColor: widget.liveUIColor,
       onReady: widget.onReady,
+      onEnded: widget.onEnded,
       progressColors: widget.progressColors,
       thumbnailUrl: widget.thumbnailUrl,
       topActions: widget.topActions,

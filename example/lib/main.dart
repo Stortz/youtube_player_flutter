@@ -1,16 +1,19 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 import 'video_list.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(
     SystemUiOverlayStyle(
       statusBarColor: Colors.blueAccent,
     ),
   );
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   runApp(YoutubePlayerDemoApp());
 }
 
@@ -55,39 +58,51 @@ class _MyHomePageState extends State<MyHomePage> {
   TextEditingController _seekToController;
 
   PlayerState _playerState;
+  YoutubeMetaData _videoMetaData;
   double _volume = 100;
   bool _muted = false;
   bool _isPlayerReady = false;
+
+  final List<String> _ids = [
+    'nPt8bK2gbaU',
+    'qiYKD1FZ5YM',
+    'gQDByCdjUXw',
+    'iLnmTe5Q2Qw',
+    '_WoCV4c6XOE',
+    'KmzdUe0RSJo',
+    '6jZDSSZZxjQ',
+    'p2lYr3vM_1w',
+    '7QUtEmBT_-w',
+    '34_PXCzGw1M',
+  ];
 
   @override
   void initState() {
     super.initState();
     _controller = YoutubePlayerController(
-      initialVideoId: 'p2lYr3vM_1w',
+      initialVideoId: _ids.first,
       flags: YoutubePlayerFlags(
         mute: false,
         autoPlay: true,
-        forceHideAnnotation: true,
         disableDragSeek: false,
-        loop: true,
+        loop: false,
         isLive: false,
+        forceHD: false,
+        enableCaption: true,
       ),
     )..addListener(listener);
     _idController = TextEditingController();
     _seekToController = TextEditingController();
+    _videoMetaData = YoutubeMetaData();
     _playerState = PlayerState.unknown;
   }
 
   void listener() {
-    if (_isPlayerReady) {
-      if (_controller.value.playerState == PlayerState.ended) {
-        _showSnackBar('Video Ended!');
-      }
-      if (mounted && !_controller.value.isFullScreen) {
-        setState(() {
-          _playerState = _controller.value.playerState;
-        });
-      }
+    if (_isPlayerReady && mounted && !_controller.value.isFullScreen) {
+      setState(() {
+        _playerState = _controller.value.playerState;
+        _videoMetaData = _controller.metadata;
+      });
     }
   }
 
@@ -144,7 +159,7 @@ class _MyHomePageState extends State<MyHomePage> {
               SizedBox(width: 8.0),
               Expanded(
                 child: Text(
-                  _controller.value?.title ?? '',
+                  _controller.metadata.title,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18.0,
@@ -167,6 +182,11 @@ class _MyHomePageState extends State<MyHomePage> {
             onReady: () {
               _isPlayerReady = true;
             },
+            onEnded: (data) {
+              _controller
+                  .load(_ids[(_ids.indexOf(data.videoId) + 1) % _ids.length]);
+              _showSnackBar('Next Video Started!');
+            },
           ),
           Padding(
             padding: EdgeInsets.all(8.0),
@@ -174,16 +194,38 @@ class _MyHomePageState extends State<MyHomePage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _space,
-                _text('Title', _controller.title),
+                _text('Title', _videoMetaData.title),
                 _space,
-                _text('Channel', _controller.author),
+                _text('Channel', _videoMetaData.author),
+                _space,
+                _text('Video Id', _videoMetaData.videoId),
+                _space,
+                Row(
+                  children: [
+                    _text(
+                      'Playback Quality',
+                      _controller.value.playbackQuality,
+                    ),
+                    Spacer(),
+                    _text(
+                      'Playback Rate',
+                      '${_controller.value.playbackRate}x  ',
+                    ),
+                  ],
+                ),
                 _space,
                 TextField(
                   enabled: _isPlayerReady,
                   controller: _idController,
                   decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: "Enter youtube \<video id\> or \<link\>",
+                    border: InputBorder.none,
+                    hintText: 'Enter youtube \<video id\> or \<link\>',
+                    fillColor: Colors.blueAccent.withAlpha(20),
+                    filled: true,
+                    hintStyle: TextStyle(
+                      fontWeight: FontWeight.w300,
+                      color: Colors.blueAccent,
+                    ),
                     suffixIcon: IconButton(
                       icon: Icon(Icons.clear),
                       onPressed: () => _idController.clear(),
@@ -201,7 +243,15 @@ class _MyHomePageState extends State<MyHomePage> {
                 _space,
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: <Widget>[
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.skip_previous),
+                      onPressed: _isPlayerReady
+                          ? () => _controller.load(_ids[
+                              (_ids.indexOf(_controller.metadata.videoId) - 1) %
+                                  _ids.length])
+                          : null,
+                    ),
                     IconButton(
                       icon: Icon(
                         _controller.value.isPlaying
@@ -234,30 +284,15 @@ class _MyHomePageState extends State<MyHomePage> {
                       controller: _controller,
                       color: Colors.blueAccent,
                     ),
-                  ],
-                ),
-                _space,
-                TextField(
-                  enabled: _isPlayerReady,
-                  controller: _seekToController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: "Seek to seconds",
-                    suffixIcon: Padding(
-                      padding: EdgeInsets.all(5.0),
-                      child: OutlineButton(
-                        child: Text("Seek"),
-                        onPressed: () {
-                          _controller.seekTo(
-                            Duration(
-                              seconds: int.parse(_seekToController.text),
-                            ),
-                          );
-                        },
-                      ),
+                    IconButton(
+                      icon: Icon(Icons.skip_next),
+                      onPressed: _isPlayerReady
+                          ? () => _controller.load(_ids[
+                              (_ids.indexOf(_controller.metadata.videoId) + 1) %
+                                  _ids.length])
+                          : null,
                     ),
-                  ),
+                  ],
                 ),
                 _space,
                 Row(
@@ -335,11 +370,11 @@ class _MyHomePageState extends State<MyHomePage> {
   Color _getStateColor(PlayerState state) {
     switch (state) {
       case PlayerState.unknown:
-        return Colors.redAccent;
-      case PlayerState.unStarted:
         return Colors.grey[700];
-      case PlayerState.ended:
+      case PlayerState.unStarted:
         return Colors.pink;
+      case PlayerState.ended:
+        return Colors.red;
       case PlayerState.playing:
         return Colors.blueAccent;
       case PlayerState.paused:
@@ -348,8 +383,6 @@ class _MyHomePageState extends State<MyHomePage> {
         return Colors.yellow;
       case PlayerState.cued:
         return Colors.blue[900];
-      case PlayerState.stopped:
-        return Colors.red;
       default:
         return Colors.blue;
     }

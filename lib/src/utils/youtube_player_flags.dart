@@ -1,13 +1,18 @@
-// Copyright 2019 Sarbagya Dhaubanjar. All rights reserved.
+// Copyright 2020 Sarbagya Dhaubanjar. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 /// Defines player flags for [YoutubePlayer].
 class YoutubePlayerFlags {
-  /// if set to true, hides the controls.
+  /// If set to true, hides the controls.
   ///
   /// Default is false.
   final bool hideControls;
+
+  /// Is set to true, controls will be visible at start.
+  ///
+  /// Default is false.
+  final bool controlsVisibleAtStart;
 
   /// Define whether to auto play the video after initialization or not.
   ///
@@ -23,14 +28,6 @@ class YoutubePlayerFlags {
   ///
   /// Default is false.
   final bool isLive;
-
-  /// If true, hides the YouTube player annotation. Default is false.
-  ///
-  /// Forcing annotation to hide is a hacky way. Although this shouldn't be against Youtube TOS, the author doesn't guarantee
-  /// and won't be responsible for any casualties regarding the YouTube TOS violation.
-  ///
-  /// It's hidden by default on iOS. Changing this flag will have no effect on iOS.
-  final bool forceHideAnnotation;
 
   /// Hides thumbnail if true.
   ///
@@ -57,18 +54,24 @@ class YoutubePlayerFlags {
   /// Default is `en`.
   final String captionLanguage;
 
+  /// Forces High Definition video quality when possible
+  ///
+  /// Default is false.
+  final bool forceHD;
+
   /// Creates [YoutubePlayerFlags].
   const YoutubePlayerFlags({
     this.hideControls = false,
+    this.controlsVisibleAtStart = false,
     this.autoPlay = true,
     this.mute = false,
     this.isLive = false,
-    this.forceHideAnnotation = true,
     this.hideThumbnail = false,
     this.disableDragSeek = false,
     this.enableCaption = true,
     this.captionLanguage = 'en',
     this.loop = false,
+    this.forceHD = false,
   });
 
   /// Copies new values assigned to the [YoutubePlayerFlags].
@@ -78,11 +81,11 @@ class YoutubePlayerFlags {
     bool mute,
     bool showVideoProgressIndicator,
     bool isLive,
-    bool forceHideAnnotation,
     bool hideThumbnail,
     bool disableDragSeek,
     bool loop,
     bool enableCaption,
+    bool forceHD,
     String captionLanguage,
   }) {
     return YoutubePlayerFlags(
@@ -90,12 +93,12 @@ class YoutubePlayerFlags {
       captionLanguage: captionLanguage ?? this.captionLanguage,
       disableDragSeek: disableDragSeek ?? this.disableDragSeek,
       enableCaption: enableCaption ?? this.enableCaption,
-      forceHideAnnotation: forceHideAnnotation ?? this.forceHideAnnotation,
       hideControls: hideControls ?? this.hideControls,
       hideThumbnail: hideThumbnail ?? this.hideThumbnail,
       isLive: isLive ?? this.isLive,
       loop: loop ?? this.loop,
       mute: mute ?? this.mute,
+      forceHD: forceHD ?? this.forceHD,
     );
   }
 }

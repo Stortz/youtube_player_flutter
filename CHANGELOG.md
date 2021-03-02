@@ -1,3 +1,37 @@
+## 6.1.1
+* Removed `forceHideAnnotation`.
+
+## 6.1.0+7
+* Updated *webview_media* constraint to `>=0.1.2<1.0.0`
+
+## 6.1.0+6
+* Exports `Webview`
+
+## 6.1.0+5
+* **(Fixed)** Infinite buffer indicator when `autoplay` set to false
+
+## 6.1.0+2
+* **(Fixed)** Some videos not playing [Issue #119](https://github.com/sarbagyastha/youtube_player_flutter/issues/119)
+* **(Improvements)** Faster initial video loading time
+* Added `forceHD` flag
+* Shows buffer indicator until video is playable
+
+**BREAKING CHANGE**
+If you're using `webview_flutter` alongside, then remove it from dependencies. The package exports webview on its own.
+
+## 6.0.3+2
+* **(New Feature)** Pinch in/out on the player to fit video.
+* **(Improvements)** Video plays in high definition, if supported.
+
+## 6.0.3+1
+* Moved `videoId`, `title`, `author` and `duration` to separate **YoutubeMetaData** class.
+* **(Fixed)** Issue with invalid video id being shown while switching to fullscreen. [Issue #118](https://github.com/sarbagyastha/youtube_player_flutter/issues/118)
+
+## 6.0.2
+* Added `onEnded` callback for `YoutubePlayer` widget. (Fixes [#108](https://github.com/sarbagyastha/youtube_player_flutter/issues/108))
+* Removed `isEvaluationReady` & `isLoaded` flags as it had no use anyway.
+* Added `controlsVisibleAtStart` flag. (Fixes [#113](https://github.com/sarbagyastha/youtube_player_flutter/issues/113))
+
 ## 6.0.1
 * **(New Feature)** Added `title` and `author` property to `YoutubePlayerController`.
 * Removed **DataConnectionChecker** dependency.

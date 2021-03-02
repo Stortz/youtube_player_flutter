@@ -22,11 +22,13 @@ Supported Platforms:
 * Supports captions
 * No need for API Key
 * Supports custom controls
+* Retrieves video meta data
 * Supports Live Stream videos
 * Supports changing playback rate
 * Support for both Android and iOS
 * Adapts to quality as per the bandwidth
 * Fast Forward and Rewind on horizontal drag
+* Fit Videos to wide screens with pinch gestures
 
 The plugin uses [webview_flutter](https://pub.dartlang.org/packages/webview_flutter) under-the-hood to play videos. 
 
@@ -121,11 +123,16 @@ print(videoId); // BBAyRBTfsOU
 
 [Detailed Example](https://github.com/sarbagyastha/youtube_player_flutter/tree/master/example)
 
-## Note
-Know more about the configuration options [here](https://pub.dartlang.org/documentation/youtube_player_flutter/latest/youtube_player_flutter/youtube_player_flutter-library.html).
+## Quick Links
+* [YoutubePlayer](https://pub.dev/documentation/youtube_player_flutter/latest/youtube_player_flutter/YoutubePlayer-class.html)
+* [YoutubePlayerController](https://pub.dev/documentation/youtube_player_flutter/latest/youtube_player_flutter/YoutubePlayerController-class.html)
+* [YoutubePlayerFlags](https://pub.dev/documentation/youtube_player_flutter/latest/youtube_player_flutter/YoutubePlayerFlags-class.html)
+* [YoutubePlayerValue](https://pub.dev/documentation/youtube_player_flutter/latest/youtube_player_flutter/YoutubePlayerValue-class.html)
+* [YoutubeMetaData](https://pub.dev/documentation/youtube_player_flutter/latest/youtube_player_flutter/YoutubeMetaData-class.html)
 
 ## Download
-Download apk from above(in badges) and try the plugin.
+Download APKs from above(in badge) and try the plugin.
+APKs are available in Assets of Github release page.
 
 ## Limitation 
 Since the plugin is based on platform views. This plugin requires Android API level 20 or greater.
@@ -135,7 +142,7 @@ If you only want to target Android and need support for Android Kitkat or less, 
 ## License
 
 ```
-Copyright 2019 Sarbagya Dhaubanjar. All rights reserved.
+Copyright 2020 Sarbagya Dhaubanjar. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:

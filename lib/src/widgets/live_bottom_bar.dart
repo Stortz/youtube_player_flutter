@@ -1,4 +1,4 @@
-// Copyright 2019 Sarbagya Dhaubanjar. All rights reserved.
+// Copyright 2020 Sarbagya Dhaubanjar. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -55,10 +55,11 @@ class _LiveBottomBarState extends State<LiveBottomBar> {
   void listener() {
     if (mounted) {
       setState(() {
-        _currentSliderPosition = _controller.value.duration.inMilliseconds == 0
-            ? 0
-            : _controller.value.position.inMilliseconds /
-                _controller.value.duration.inMilliseconds;
+        _currentSliderPosition =
+            _controller.metadata.duration.inMilliseconds == 0
+                ? 0
+                : _controller.value.position.inMilliseconds /
+                    _controller.metadata.duration.inMilliseconds;
       });
     }
   }
@@ -66,7 +67,7 @@ class _LiveBottomBarState extends State<LiveBottomBar> {
   @override
   Widget build(BuildContext context) {
     return Visibility(
-      visible: _controller.value.showControls,
+      visible: _controller.value.isControlsVisible,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
@@ -82,7 +83,7 @@ class _LiveBottomBarState extends State<LiveBottomBar> {
                   _controller.seekTo(
                     Duration(
                       milliseconds:
-                          (_controller.value.duration.inMilliseconds * value)
+                          (_controller.metadata.duration.inMilliseconds * value)
                               .round(),
                     ),
                   );
@@ -96,7 +97,7 @@ class _LiveBottomBarState extends State<LiveBottomBar> {
             ),
           ),
           InkWell(
-            onTap: () => _controller.seekTo(_controller.value.duration),
+            onTap: () => _controller.seekTo(_controller.metadata.duration),
             child: Material(
               color: widget.liveUIColor,
               child: Text(

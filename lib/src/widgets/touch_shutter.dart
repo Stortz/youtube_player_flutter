@@ -1,4 +1,4 @@
-// Copyright 2019 Sarbagya Dhaubanjar. All rights reserved.
+// Copyright 2020 Sarbagya Dhaubanjar. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -38,6 +38,7 @@ class TouchShutter extends StatefulWidget {
 class _TouchShutterState extends State<TouchShutter> {
   double dragStartPos = 0.0;
   double delta = 0.0;
+  double scaleAmount = 0.0;
   int seekToPosition = 0;
   String seekDuration = "";
   String seekPosition = "";
@@ -69,7 +70,7 @@ class _TouchShutterState extends State<TouchShutter> {
   void _toggleControls() {
     _controller.updateValue(
       _controller.value.copyWith(
-        showControls: !_controller.value.showControls,
+        isControlsVisible: !_controller.value.isControlsVisible,
       ),
     );
     _timer?.cancel();
@@ -77,7 +78,7 @@ class _TouchShutterState extends State<TouchShutter> {
       if (!_controller.value.isDragging) {
         _controller.updateValue(
           _controller.value.copyWith(
-            showControls: false,
+            isControlsVisible: false,
           ),
         );
       }
@@ -99,7 +100,7 @@ class _TouchShutterState extends State<TouchShutter> {
             onHorizontalDragUpdate: (details) {
               _controller.updateValue(
                 _controller.value.copyWith(
-                  showControls: false,
+                  isControlsVisible: false,
                 ),
               );
               delta = details.globalPosition.dx - dragStartPos;
@@ -120,9 +121,22 @@ class _TouchShutterState extends State<TouchShutter> {
                 _dragging = false;
               });
             },
+            onScaleUpdate: (details) {
+              scaleAmount = details.scale;
+            },
+            onScaleEnd: (_) {
+              if (_controller.value.isFullScreen) {
+                if (scaleAmount > 1) {
+                  _controller.fitWidth(MediaQuery.of(context).size);
+                }
+                if (scaleAmount < 1) {
+                  _controller.fitHeight(MediaQuery.of(context).size);
+                }
+              }
+            },
             child: AnimatedContainer(
               duration: Duration(milliseconds: 300),
-              color: _controller.value.showControls
+              color: _controller.value.isControlsVisible
                   ? Colors.black.withAlpha(150)
                   : Colors.transparent,
               child: _dragging

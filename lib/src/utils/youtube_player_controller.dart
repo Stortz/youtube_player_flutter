@@ -1,13 +1,15 @@
-// Copyright 2019 Sarbagya Dhaubanjar. All rights reserved.
+// Copyright 2020 Sarbagya Dhaubanjar. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_media/platform_interface.dart';
+import 'package:webview_media/webview_flutter.dart';
 
 import '../enums/playback_rate.dart';
 import '../enums/player_state.dart';
+import '../utils/youtube_meta_data.dart';
 import '../widgets/progress_bar.dart';
 import 'youtube_player_flags.dart';
 
@@ -17,11 +19,8 @@ class YoutubePlayerValue {
   /// of a [YoutubePlayerController].
   YoutubePlayerValue({
     this.isReady = false,
-    this.isEvaluationReady = false,
-    this.showControls = false,
-    this.isLoaded = false,
+    this.isControlsVisible = false,
     this.hasPlayed = false,
-    this.duration = const Duration(),
     this.position = const Duration(),
     this.buffered = 0.0,
     this.isPlaying = false,
@@ -32,35 +31,25 @@ class YoutubePlayerValue {
     this.playbackQuality,
     this.errorCode = 0,
     this.webViewController,
-    this.videoId,
     this.toggleFullScreen = false,
     this.isDragging = false,
-    this.title = '',
-    this.author = '',
+    this.metaData = const YoutubeMetaData(),
+    this.webResourceError,
   });
 
-  /// Returns true when underlying web player reports ready.
+  /// Returns true when the player is ready to play videos.
   final bool isReady;
 
-  /// Returns true when JavaScript evaluation can be triggered.
-  final bool isEvaluationReady;
-
-  /// Whether to show controls or not.
-  final bool showControls;
-
-  /// Returns true once video loads.
-  final bool isLoaded;
+  /// Defines whether or not the controls are visible.
+  final bool isControlsVisible;
 
   /// Returns true once the video start playing for the first time.
   final bool hasPlayed;
 
-  /// The total length of the video.
-  final Duration duration;
-
   /// The current position of the video.
   final Duration position;
 
-  /// The position up to which the video is buffered.
+  /// The position up to which the video is buffered.i
   final double buffered;
 
   /// Reports true if video is playing.
@@ -83,17 +72,17 @@ class YoutubePlayerValue {
   /// See the onError Section.
   final int errorCode;
 
+  /// Reports error related toloading page resources.
+  final WebResourceError webResourceError;
+
   /// Reports the [WebViewController].
   final WebViewController webViewController;
 
   /// Returns true is player has errors.
-  bool get hasError => errorCode != 0;
+  bool get hasError => errorCode != 0 && webResourceError == null;
 
   /// Reports the current playback quality.
   final String playbackQuality;
-
-  /// Reports currently loaded video Id.
-  final String videoId;
 
   /// Returns true if fullscreen mode is just toggled.
   final bool toggleFullScreen;
@@ -101,22 +90,16 @@ class YoutubePlayerValue {
   /// Returns true if [ProgressBar] is being dragged.
   final bool isDragging;
 
-  /// Returns title of the video.
-  final String title;
-
-  /// Returns author of the video.
-  /// i.e. Channel Name
-  final String author;
+  /// Returns meta data of the currently loaded/cued video.
+  final YoutubeMetaData metaData;
 
   /// Creates new [YoutubePlayerValue] with assigned parameters and overrides
   /// the old one.
   YoutubePlayerValue copyWith({
     bool isReady,
-    bool isEvaluationReady,
-    bool showControls,
+    bool isControlsVisible,
     bool isLoaded,
     bool hasPlayed,
-    Duration duration,
     Duration position,
     double buffered,
     bool isPlaying,
@@ -127,18 +110,14 @@ class YoutubePlayerValue {
     String playbackQuality,
     int errorCode,
     WebViewController webViewController,
-    String videoId,
     bool toggleFullScreen,
     bool isDragging,
-    String title,
-    String author,
+    YoutubeMetaData metaData,
+    WebResourceError webResourceError,
   }) {
     return YoutubePlayerValue(
       isReady: isReady ?? this.isReady,
-      isEvaluationReady: isEvaluationReady ?? this.isEvaluationReady,
-      showControls: showControls ?? this.showControls,
-      isLoaded: isLoaded ?? this.isLoaded,
-      duration: duration ?? this.duration,
+      isControlsVisible: isControlsVisible ?? this.isControlsVisible,
       hasPlayed: hasPlayed ?? this.hasPlayed,
       position: position ?? this.position,
       buffered: buffered ?? this.buffered,
@@ -150,32 +129,27 @@ class YoutubePlayerValue {
       playbackQuality: playbackQuality ?? this.playbackQuality,
       errorCode: errorCode ?? this.errorCode,
       webViewController: webViewController ?? this.webViewController,
-      videoId: videoId ?? this.videoId,
       toggleFullScreen: toggleFullScreen ?? this.toggleFullScreen,
       isDragging: isDragging ?? this.isDragging,
-      title: title ?? this.title,
-      author: author ?? this.author,
+      metaData: metaData ?? this.metaData,
+      webResourceError: webResourceError ?? this.webResourceError,
     );
   }
 
   @override
   String toString() {
     return '$runtimeType('
-        'videoId: $videoId, '
-        'title: $title, '
-        'author: $author, '
+        'metaData: ${metaData.toString()}, '
         'isReady: $isReady, '
-        'isEvaluationReady: $isEvaluationReady, '
-        'showControls: $showControls, '
-        'isLoaded: $isLoaded, '
-        'duration: $duration, '
-        'position: $position, '
+        'isControlsVisible: $isControlsVisible, '
+        'position: ${position.inSeconds} sec. , '
         'buffered: $buffered, '
         'isPlaying: $isPlaying, '
         'volume: $volume, '
         'playerState: $playerState, '
         'playbackRate: $playbackRate, '
         'playbackQuality: $playbackQuality, '
+        'webResourceError: ${webResourceError?.description}, '
         'errorCode: $errorCode)';
   }
 }
@@ -201,14 +175,12 @@ class YoutubePlayerController extends ValueNotifier<YoutubePlayerValue> {
     this.flags = const YoutubePlayerFlags(),
   })  : assert(initialVideoId != null, 'initialVideoId can\'t be null.'),
         assert(flags != null),
-        super(YoutubePlayerValue(isReady: false));
+        super(YoutubePlayerValue());
 
   /// Finds [YoutubePlayerController] in the provided context.
-  static YoutubePlayerController of(BuildContext context) {
-    InheritedYoutubePlayer _player =
-        context.inheritFromWidgetOfExactType(InheritedYoutubePlayer);
-    return _player?.controller;
-  }
+  factory YoutubePlayerController.of(BuildContext context) => context
+      .dependOnInheritedWidgetOfExactType<InheritedYoutubePlayer>()
+      ?.controller;
 
   _callMethod(String methodString) {
     if (value.isEvaluationReady) {
@@ -235,13 +207,21 @@ class YoutubePlayerController extends ValueNotifier<YoutubePlayerValue> {
   /// Loads the video as per the [videoId] provided.
   void load(String videoId, {int startAt = 0}) {
     _updateValues(videoId);
-    _callMethod('loadById("$videoId",$startAt)');
+    if (value.errorCode == 1) {
+      pause();
+    } else {
+      _callMethod('loadById("$videoId",$startAt)');
+    }
   }
 
   /// Cues the video as per the [videoId] provided.
   void cue(String videoId, {int startAt = 0}) {
     _updateValues(videoId);
-    _callMethod('cueById("$videoId",$startAt)');
+    if (value.errorCode == 1) {
+      pause();
+    } else {
+      _callMethod('cueById("$videoId",$startAt)');
+    }
   }
 
   void _updateValues(String id) {
@@ -254,7 +234,7 @@ class YoutubePlayerController extends ValueNotifier<YoutubePlayerValue> {
       return;
     }
     updateValue(
-      value.copyWith(errorCode: 0, hasPlayed: false, videoId: id),
+      value.copyWith(errorCode: 0, hasPlayed: false),
     );
   }
 
@@ -284,6 +264,21 @@ class YoutubePlayerController extends ValueNotifier<YoutubePlayerValue> {
   void setSize(Size size) =>
       _callMethod('setSize(${size.width}, ${size.height})');
 
+  /// Fits the video to screen width.
+  void fitWidth(Size screenSize) {
+    var adjustedHeight = 9 / 16 * screenSize.width;
+    setSize(Size(screenSize.width, adjustedHeight));
+    _callMethod(
+      'setTopMargin("-${((adjustedHeight - screenSize.height) / 2 * 100).abs()}px")',
+    );
+  }
+
+  /// Fits the video to screen height.
+  void fitHeight(Size screenSize) {
+    setSize(screenSize);
+    _callMethod('setTopMargin("0px")');
+  }
+
   /// Sets the playback speed for the video.
   void setPlaybackRate(double rate) => _callMethod('setPlaybackRate($rate)');
 
@@ -291,11 +286,8 @@ class YoutubePlayerController extends ValueNotifier<YoutubePlayerValue> {
   void toggleFullScreenMode() =>
       updateValue(value.copyWith(toggleFullScreen: true));
 
-  /// The title of the currently playing YouTube video.
-  String get title => value.title;
-
-  /// The author/channel of the currently playing YouTube video.
-  String get author => value.author;
+  /// MetaData for the currently loaded or cued video.
+  YoutubeMetaData get metadata => value.metaData;
 
   /// Reloads the player.
   ///
@@ -306,12 +298,10 @@ class YoutubePlayerController extends ValueNotifier<YoutubePlayerValue> {
   void reset() => updateValue(
         value.copyWith(
           isReady: false,
-          isEvaluationReady: false,
           isFullScreen: false,
-          showControls: false,
+          isControlsVisible: false,
           playerState: PlayerState.unknown,
           hasPlayed: false,
-          duration: Duration(),
           position: Duration(),
           buffered: 0.0,
           errorCode: 0,
@@ -319,6 +309,8 @@ class YoutubePlayerController extends ValueNotifier<YoutubePlayerValue> {
           isLoaded: false,
           isPlaying: false,
           isDragging: false,
+          metaData: const YoutubeMetaData(),
+          webResourceError: null,
         ),
       );
 }

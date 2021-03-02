@@ -1,24 +1,33 @@
-// Copyright 2019 Sarbagya Dhaubanjar. All rights reserved.
+// Copyright 2020 Sarbagya Dhaubanjar. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_media/platform_interface.dart';
+import 'package:webview_media/webview_flutter.dart';
 
 import '../enums/player_state.dart';
+import '../utils/youtube_meta_data.dart';
 import '../utils/youtube_player_controller.dart';
 
 /// A raw youtube player widget which interacts with the underlying webview inorder to play YouTube videos.
 ///
 /// Use [YoutubePlayer] instead.
 class RawYoutubePlayer extends StatefulWidget {
+  /// Sets [Key] as an identification to underlying web view associated to the player.
+  final Key key;
+
+  /// {@macro youtube_player_flutter.onEnded}
+  final void Function(YoutubeMetaData metaData) onEnded;
+
   /// Creates a [RawYoutubePlayer] widget.
-  RawYoutubePlayer({Key key}) : super(key: key);
+  RawYoutubePlayer({
+    this.key,
+    this.onEnded,
+  });
 
   @override
   _RawYoutubePlayerState createState() => _RawYoutubePlayerState();
@@ -30,6 +39,7 @@ class _RawYoutubePlayerState extends State<RawYoutubePlayer>
       Completer<WebViewController>();
   YoutubePlayerController controller;
   PlayerState _cachedPlayerState;
+  bool _isPlayerReady = false;
 
   @override
   void initState() {
@@ -55,10 +65,10 @@ class _RawYoutubePlayerState extends State<RawYoutubePlayer>
       case AppLifecycleState.inactive:
         break;
       case AppLifecycleState.paused:
-      case AppLifecycleState.suspending:
         _cachedPlayerState = controller.value.playerState;
         controller?.pause();
         break;
+      default:
     }
   }
 
@@ -68,14 +78,25 @@ class _RawYoutubePlayerState extends State<RawYoutubePlayer>
     return IgnorePointer(
       ignoring: true,
       child: WebView(
-        initialUrl: player,
+        key: widget.key,
+        userAgent: userAgent,
+        initialData: WebData(
+          data: player,
+          baseUrl: 'https://www.youtube.com',
+          encoding: 'utf-8',
+          mimeType: 'text/html',
+        ),
+        onWebResourceError: (WebResourceError error) {
+          controller
+              .updateValue(controller.value.copyWith(webResourceError: error));
+        },
         javascriptMode: JavascriptMode.unrestricted,
         initialMediaPlaybackPolicy: AutoMediaPlaybackPolicy.always_allow,
         javascriptChannels: {
           JavascriptChannel(
             name: 'Ready',
             onMessageReceived: (JavascriptMessage message) {
-              controller.updateValue(controller.value.copyWith(isReady: true));
+              _isPlayerReady = true;
             },
           ),
           JavascriptChannel(
@@ -91,8 +112,13 @@ class _RawYoutubePlayerState extends State<RawYoutubePlayer>
                   );
                   break;
                 case '0':
+                  if (widget.onEnded != null) {
+                    widget.onEnded(controller.metadata);
+                  }
                   controller.updateValue(
-                    controller.value.copyWith(playerState: PlayerState.ended),
+                    controller.value.copyWith(
+                      playerState: PlayerState.ended,
+                    ),
                   );
                   break;
                 case '1':
@@ -115,13 +141,16 @@ class _RawYoutubePlayerState extends State<RawYoutubePlayer>
                   break;
                 case '3':
                   controller.updateValue(
-                    controller.value
-                        .copyWith(playerState: PlayerState.buffering),
+                    controller.value.copyWith(
+                      playerState: PlayerState.buffering,
+                    ),
                   );
                   break;
                 case '5':
                   controller.updateValue(
-                    controller.value.copyWith(playerState: PlayerState.cued),
+                    controller.value.copyWith(
+                      playerState: PlayerState.cued,
+                    ),
                   );
                   break;
                 default:
@@ -161,13 +190,9 @@ class _RawYoutubePlayerState extends State<RawYoutubePlayer>
           JavascriptChannel(
             name: 'VideoData',
             onMessageReceived: (JavascriptMessage message) {
-              var videoData = jsonDecode(message.message);
-              double duration = videoData['duration'] * 1000;
               controller.updateValue(
                 controller.value.copyWith(
-                  duration: Duration(milliseconds: duration.floor()),
-                  title: videoData['title'],
-                  author: videoData['author'],
+                  metaData: YoutubeMetaData.fromRawData(message.message),
                 ),
               );
             },
@@ -205,16 +230,19 @@ class _RawYoutubePlayerState extends State<RawYoutubePlayer>
           );
         },
         onPageFinished: (_) {
-          controller.updateValue(
-            controller.value.copyWith(isEvaluationReady: true),
-          );
+          if (_isPlayerReady) {
+            controller.updateValue(
+              controller.value.copyWith(isReady: true),
+            );
+          } else {
+            controller.reload();
+          }
         },
       ),
     );
   }
 
-  String get player {
-    var _player = '''
+  String get player => '''
     <!DOCTYPE html>
     <html>
     <head>
@@ -226,21 +254,9 @@ class _RawYoutubePlayerState extends State<RawYoutubePlayer>
                 background-color: #000000;
                 overflow: hidden;
                 position: fixed;
-    ''';
-    if (!Platform.isIOS && controller.flags.forceHideAnnotation) {
-      _player += '''
-                height: 1000%;
-                width: 1000%;
-                transform: scale(0.1);
-                transform-origin: left top;
-      ''';
-    } else {
-      _player += '''
                 height: 100%;
                 width: 100%;
-      ''';
-    }
-    _player += '''
+                pointer-events: none;
             }
         </style>
         <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'>
@@ -259,6 +275,7 @@ class _RawYoutubePlayerState extends State<RawYoutubePlayer>
                     height: '100%',
                     width: '100%',
                     videoId: '${controller.initialVideoId}',
+                    host: 'https://www.youtube.com',
                     playerVars: {
                         'controls': 0,
                         'playsinline': 1,
@@ -273,11 +290,11 @@ class _RawYoutubePlayerState extends State<RawYoutubePlayer>
                         'autoplay': ${boolean(value: controller.flags.autoPlay)}
                     },
                     events: {
-                        onReady: (event) => Ready.postMessage("Ready"),
-                        onStateChange: (event) => sendPlayerStateChange(event.data),
-                        onPlaybackQualityChange: (event) => PlaybackQualityChange.postMessage(event.data),
-                        onPlaybackRateChange: (event) => PlaybackRateChange.postMessage(event.data),
-                        onError: (error) => Errors.postMessage(error.data)
+                        onReady: function(event) { Ready.postMessage("Ready"); },
+                        onStateChange: function(event) { sendPlayerStateChange(event.data); },
+                        onPlaybackQualityChange: function(event) { PlaybackQualityChange.postMessage(event.data); },
+                        onPlaybackRateChange: function(event) { PlaybackRateChange.postMessage(event.data); },
+                        onError: function(error) { Errors.postMessage(error.data); }
                     },
                 });
             }
@@ -296,6 +313,7 @@ class _RawYoutubePlayerState extends State<RawYoutubePlayer>
                     'duration': player.getDuration(),
                     'title': player.getVideoData().title,
                     'author': player.getVideoData().author,
+                    'videoId': player.getVideoData().video_id
                 };
                 VideoData.postMessage(JSON.stringify(videoData));
             }
@@ -366,12 +384,19 @@ class _RawYoutubePlayerState extends State<RawYoutubePlayer>
                 player.setPlaybackRate(rate);
                 return '';
             }
+            
+            function setTopMargin(margin) {
+                document.getElementById("player").style.marginTop = margin;
+                return '';
+            }
         </script>
     </body>
     </html>
-    ''';
-    return 'data:text/html;base64,${base64Encode(const Utf8Encoder().convert(_player))}';
-  }
+  ''';
 
   String boolean({@required bool value}) => value ? "'1'" : "'0'";
+
+  String get userAgent => controller.flags.forceHD
+      ? 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36'
+      : null;
 }
