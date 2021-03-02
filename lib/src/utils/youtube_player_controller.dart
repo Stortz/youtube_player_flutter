@@ -183,7 +183,7 @@ class YoutubePlayerController extends ValueNotifier<YoutubePlayerValue> {
       ?.controller;
 
   _callMethod(String methodString) {
-    if (value.isEvaluationReady) {
+    if (value.isReady) {
       try {
         value.webViewController?.evaluateJavascript(methodString);
       } on PlatformException {
