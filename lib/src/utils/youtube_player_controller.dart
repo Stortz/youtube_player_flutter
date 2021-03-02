@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -211,7 +212,11 @@ class YoutubePlayerController extends ValueNotifier<YoutubePlayerValue> {
 
   _callMethod(String methodString) {
     if (value.isEvaluationReady) {
-      value.webViewController?.evaluateJavascript(methodString);
+      try {
+        value.webViewController?.evaluateJavascript(methodString);
+      } on PlatformException {
+        print('Something went wrong while trying to evaluateJavascript');
+      }
     } else {
       print('The controller is not ready for method calls.');
     }
